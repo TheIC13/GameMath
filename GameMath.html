@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Adventure Quest - การผจญภัยทางคณิตศาสตร์</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+        
+        .star {
+            transition: all 0.3s ease;
+        }
+        
+        .star.earned {
+            animation: starEarn 0.8s ease-out;
+        }
+        
+        @keyframes starEarn {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
+            100% { transform: scale(1) rotate(360deg); opacity: 1; }
+        }
+        
+        .level-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .level-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .level-card.completed {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .level-card.current {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            animation: pulse 2s infinite;
+        }
+        
+        .level-card.locked {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            cursor: not-allowed;
+        }
+        
+        .question-card {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .answer-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .answer-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .answer-btn.correct {
+            animation: correctAnswer 0.6s ease-out;
+        }
+        
+        .answer-btn.wrong {
+            animation: wrongAnswer 0.6s ease-out;
+        }
+        
+        @keyframes correctAnswer {
+            0% { background-color: #10b981; transform: scale(1); }
+            50% { background-color: #059669; transform: scale(1.1); }
+            100% { background-color: #10b981; transform: scale(1); }
+        }
+        
+        @keyframes wrongAnswer {
+            0% { background-color: #ef4444; transform: translateX(0); }
+            25% { background-color: #dc2626; transform: translateX(-10px); }
+            75% { background-color: #dc2626; transform: translateX(10px); }
+            100% { background-color: #ef4444; transform: translateX(0); }
+        }
+        
+        .reward-modal {
+            animation: rewardAppear 0.8s ease-out;
+        }
+        
+        @keyframes rewardAppear {
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(0deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        /* Sound wave animation */
+        .sound-wave {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .wave {
+            width: 4px;
+            height: 20px;
+            background: #fbbf24;
+            margin: 0 2px;
+            display: inline-block;
+            animation: wave 0.5s infinite ease-in-out;
+        }
+        
+        .wave:nth-child(2) { animation-delay: 0.1s; }
+        .wave:nth-child(3) { animation-delay: 0.2s; }
+        .wave:nth-child(4) { animation-delay: 0.3s; }
+        
+        @keyframes wave {
+            0%, 40%, 100% { transform: scaleY(0.4); }
+            20% { transform: scaleY(1.0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden bg-gradient-to-br from-slate-800 via-purple-900 to-indigo-900">
+    <!-- Sound Wave Indicator -->
+    <div class="sound-wave" id="sound-indicator">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+
+    <!-- Educational Items Pattern Background -->
+    <div class="fixed inset-0 pointer-events-none">
+        <!-- School Supplies Pattern -->
+        <div class="absolute top-10 left-10 text-4xl opacity-20 animate-bounce">📚</div>
+        <div class="absolute top-20 right-20 text-3xl opacity-15 animate-pulse">✏️</div>
+        <div class="absolute top-40 left-1/4 text-5xl opacity-25 animate-bounce delay-1000">📝</div>
+        <div class="absolute top-60 right-1/3 text-4xl opacity-20 animate-pulse delay-500">🖊️</div>
+        <div class="absolute bottom-40 left-20 text-6xl opacity-30 animate-bounce delay-700">🎒</div>
+        <div class="absolute bottom-20 right-10 text-3xl opacity-15 animate-pulse delay-300">📐</div>
+        <div class="absolute bottom-60 left-1/2 text-4xl opacity-25 animate-bounce delay-1200">🧮</div>
+        <div class="absolute top-1/2 left-10 text-5xl opacity-20 animate-pulse delay-800">📏</div>
+        <div class="absolute top-1/3 right-10 text-4xl opacity-25 animate-bounce delay-400">🖍️</div>
+        <div class="absolute bottom-1/3 left-1/3 text-3xl opacity-15 animate-pulse delay-600">✂️</div>
+        
+        <!-- More School Items -->
+        <div class="absolute top-16 left-1/3 text-4xl opacity-20 animate-bounce delay-200">📖</div>
+        <div class="absolute top-80 right-1/4 text-3xl opacity-15 animate-pulse delay-900">🖇️</div>
+        <div class="absolute bottom-32 left-1/4 text-5xl opacity-25 animate-bounce delay-1500">🎨</div>
+        <div class="absolute top-1/4 right-20 text-4xl opacity-20 animate-pulse delay-1100">📌</div>
+        <div class="absolute bottom-1/4 right-1/3 text-3xl opacity-15 animate-bounce delay-800">🖊️</div>
+        <div class="absolute top-3/4 left-20 text-4xl opacity-25 animate-pulse delay-400">📋</div>
+        <div class="absolute top-52 left-3/4 text-3xl opacity-20 animate-bounce delay-1300">🗂️</div>
+        <div class="absolute bottom-16 right-1/2 text-5xl opacity-30 animate-pulse delay-600">🎓</div>
+        
+        <!-- Additional Learning Tools -->
+        <div class="absolute top-28 right-1/3 text-4xl opacity-20 animate-bounce delay-700">🔍</div>
+        <div class="absolute bottom-48 left-1/3 text-3xl opacity-15 animate-pulse delay-1000">📊</div>
+        <div class="absolute top-2/3 right-1/4 text-4xl opacity-25 animate-bounce delay-300">🧪</div>
+        <div class="absolute top-44 left-1/2 text-3xl opacity-20 animate-pulse delay-1400">🌍</div>
+        <div class="absolute bottom-28 right-20 text-4xl opacity-15 animate-bounce delay-500">⚗️</div>
+        <div class="absolute top-1/3 left-3/4 text-5xl opacity-30 animate-pulse delay-1200">🏫</div>
+        
+        <!-- Math Symbols Pattern (smaller and more subtle) -->
+        <div class="absolute top-32 left-1/2 text-2xl text-purple-400/30 animate-spin" style="animation-duration: 20s;">+</div>
+        <div class="absolute top-1/4 left-1/4 text-2xl text-blue-400/30 animate-spin" style="animation-duration: 25s;">×</div>
+        <div class="absolute bottom-1/4 right-1/4 text-2xl text-pink-400/30 animate-spin" style="animation-duration: 30s;">÷</div>
+        <div class="absolute top-3/4 left-3/4 text-2xl text-green-400/30 animate-spin" style="animation-duration: 22s;">-</div>
+        <div class="absolute top-1/2 right-1/2 text-2xl text-orange-400/30 animate-spin" style="animation-duration: 28s;">=</div>
+        <div class="absolute top-1/5 right-1/5 text-2xl text-indigo-400/30 animate-spin" style="animation-duration: 24s;">%</div>
+        <div class="absolute bottom-1/5 left-1/5 text-2xl text-red-400/30 animate-spin" style="animation-duration: 26s;">√</div>
+        
+        <!-- Decorative Lines and Shapes -->
+        <div class="absolute top-0 left-0 w-full h-full opacity-10">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                        <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#8B5CF6" stroke-width="0.5"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+        </div>
+    </div>
+    <!-- Header -->
+    <div class="bg-black/30 backdrop-blur-sm border-b border-yellow-400/50 shadow-lg shadow-purple-500/20">
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="text-4xl">🧮</div>
+                    <h1 class="text-3xl font-bold text-white">Math Adventure Quest</h1>
+                    <div class="text-2xl">✨</div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 flex items-center space-x-2">
+                        <span class="text-2xl">⭐</span>
+                        <span class="text-white font-bold text-xl" id="total-stars">0</span>
+                        <span class="text-white/80">/10</span>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 flex items-center space-x-2 cursor-pointer hover:bg-white/30 transition-colors" onclick="showTickets()">
+                        <span class="text-2xl">🎫</span>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 flex items-center space-x-2 cursor-pointer hover:bg-white/30 transition-colors" onclick="toggleSound()">
+                        <span class="text-2xl" id="sound-icon">🔊</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Level Selection Screen -->
+        <div id="level-screen" class="block">
+            <div class="text-center mb-8">
+                <h2 class="text-4xl font-bold text-yellow-400 mb-4 drop-shadow-lg">⚔️ พิชิตด่านผจญภัย</h2>
+                <p class="text-white/90 text-xl">ตอบคำถามทุกข้อให้ถูกต้องเพื่อผ่านด่าน ⭐ ผ่านครบ 10 ด่านรับตั๋วชิงโชค! 🎫</p>
+                <p class="text-white/80 text-lg mt-2">⚠️ ตอบผิดแม้แต่ข้อเดียว = เริ่มด่านใหม่!</p>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="bg-black/40 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-yellow-400/30 shadow-lg shadow-purple-500/20">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-white font-semibold text-lg">ความคืบหน้า</span>
+                    <span class="text-white font-bold text-lg" id="progress-text">0/10 ดาว</span>
+                </div>
+                <div class="w-full bg-gray-800/50 rounded-full h-4 border border-yellow-400/20">
+                    <div class="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 h-4 rounded-full transition-all duration-500 shadow-lg shadow-yellow-400/30" id="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Level Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                <!-- Levels 1-10 will be generated here -->
+            </div>
+
+            <!-- Difficulty Legend -->
+            <div class="bg-black/60 backdrop-blur-sm rounded-2xl p-6 border border-yellow-400/30 shadow-xl shadow-purple-500/20">
+                <h3 class="text-2xl font-bold text-yellow-400 mb-4 text-center">⚔️ ระดับความยาก</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gradient-to-br from-emerald-800 to-green-900 rounded-xl p-6 text-center border border-emerald-400/30 shadow-lg">
+                        <div class="text-4xl mb-3">🛡️</div>
+                        <h4 class="font-bold text-emerald-300 text-xl">ด่าน 1-3</h4>
+                        <p class="text-emerald-200 text-sm mt-2">การบวก-ลบ (ผู้เริ่มต้น)</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-amber-800 to-orange-900 rounded-xl p-6 text-center border border-amber-400/30 shadow-lg">
+                        <div class="text-4xl mb-3">⚔️</div>
+                        <h4 class="font-bold text-amber-300 text-xl">ด่าน 4-6</h4>
+                        <p class="text-amber-200 text-sm mt-2">การคูณ-หาร (นักรบ)</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-red-900 to-purple-900 rounded-xl p-6 text-center border border-red-400/30 shadow-lg">
+                        <div class="text-4xl mb-3">🏆</div>
+                        <h4 class="font-bold text-red-300 text-xl">ด่าน 7-10</h4>
+                        <p class="text-red-200 text-sm mt-2">โจทย์ประยุกต์ (ผู้กล้าหาญ)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Screen -->
+        <div id="question-screen" class="hidden">
+            <div class="question-card bg-white/95 backdrop-blur-sm rounded-3xl p-8 shadow-2xl">
+                <!-- Question Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <button onclick="backToLevels()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-colors text-lg font-semibold shadow-lg">
+                        <span>←</span>
+                        <span>กลับ</span>
+                    </button>
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-blue-100 px-4 py-2 rounded-full">
+                            <span class="text-blue-800 font-bold">ด่าน <span id="current-level">1</span></span>
+                        </div>
+                        <div class="bg-purple-100 px-4 py-2 rounded-full">
+                            <span class="text-purple-800 font-bold">ข้อ <span id="question-number">1</span>/<span id="total-questions">6</span></span>
+                        </div>
+                        <div class="text-3xl" id="level-icon">🧮</div>
+                    </div>
+                </div>
+
+                <!-- Question Content -->
+                <div class="text-center mb-8">
+                    <div class="text-6xl mb-4" id="question-emoji">🤔</div>
+                    <h3 class="text-3xl font-bold text-purple-800 mb-6" id="question-text">คำถาม</h3>
+                    <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 text-4xl font-bold text-purple-800" id="math-problem">
+                        2 + 3 = ?
+                    </div>
+                </div>
+
+                <!-- Answer Options -->
+                <div class="grid grid-cols-2 gap-4 mb-6" id="answer-options">
+                    <!-- Answer buttons will be generated here -->
+                </div>
+
+                <!-- Feedback Area -->
+                <div id="feedback-area" class="text-center hidden">
+                    <div class="text-6xl mb-4" id="feedback-emoji">✅</div>
+                    <h4 class="text-2xl font-bold mb-4" id="feedback-text">ยินดีด้วย!</h4>
+                    <button onclick="nextQuestion()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-12 py-4 rounded-2xl font-bold text-2xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg">
+                        ถัดไป →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reward Modal -->
+    <div id="reward-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="reward-modal bg-white rounded-3xl p-8 max-w-md mx-4 text-center">
+            <div class="text-8xl mb-4">🎉</div>
+            <h3 class="text-3xl font-bold text-purple-800 mb-4">ยินดีด้วย!</h3>
+            <p class="text-gray-600 mb-6">คุณได้รับตั๋วชิงโชค!</p>
+            <div class="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-6 mb-6">
+                <div class="text-6xl mb-2">🎫</div>
+                <div class="text-white font-bold text-2xl">ตั๋วชิงโชค</div>
+                <div class="text-white/90">นำไปแลกรางวัลกับครู</div>
+            </div>
+            <button onclick="closeRewardModal()" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:from-purple-600 hover:to-pink-600 transition-all">
+                เยี่ยมเลย! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Tickets Modal -->
+    <div id="tickets-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-3xl p-8 max-w-md mx-4 text-center">
+            <div class="text-6xl mb-4">🎫</div>
+            <h3 class="text-3xl font-bold text-purple-800 mb-4">ตั๋วชิงโชคของคุณ</h3>
+            <div class="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-6 mb-6">
+                <div class="text-white font-bold text-4xl" id="tickets-count">0</div>
+                <div class="text-white/90">ตั๋วชิงโชค</div>
+            </div>
+            <p class="text-gray-600 mb-6">นำตั๋วไปแลกรางวัลกับครูในคาบเรียน</p>
+            <div class="text-sm text-gray-500 mb-6">
+                💡 เล่นครบ 10 ด่าน = 1 ตั๋วชิงโชค
+            </div>
+            <button onclick="closeTicketsModal()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all">
+                ปิด
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            currentLevel: 1,
+            totalStars: 0,
+            tickets: 0,
+            levelStars: Array(10).fill(0), // 0 = not completed, 1 = completed
+            questions: [],
+            currentQuestionIndex: 0,
+            soundEnabled: true
+        };
+
+        // Sound effects using Web Audio API
+        function playSound(frequency, duration, type = 'sine', volume = 0.3) {
+            if (!gameState.soundEnabled) return;
+            
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                oscillator.type = type;
+                
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+                
+                // Show sound indicator
+                showSoundIndicator();
+            } catch (e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        function showSoundIndicator() {
+            const indicator = document.getElementById('sound-indicator');
+            indicator.style.display = 'block';
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 500);
+        }
+
+        function playCorrectSound() {
+            // Happy ascending notes - ding ding ding!
+            playSound(523, 0.2); // C5
+            setTimeout(() => playSound(659, 0.2), 100); // E5
+            setTimeout(() => playSound(784, 0.3), 200); // G5
+        }
+
+        function playWrongSound() {
+            // Descending sad notes - buzz buzz
+            playSound(400, 0.3, 'sawtooth', 0.2);
+            setTimeout(() => playSound(300, 0.4, 'sawtooth', 0.2), 150);
+        }
+
+        function playClickSound() {
+            // Quick beep
+            playSound(800, 0.1, 'square', 0.2);
+        }
+
+        function playLevelCompleteSound() {
+            // Victory fanfare - ta-da-da-daaaa!
+            playSound(523, 0.2); // C5
+            setTimeout(() => playSound(659, 0.2), 100); // E5
+            setTimeout(() => playSound(784, 0.2), 200); // G5
+            setTimeout(() => playSound(1047, 0.4), 300); // C6
+        }
+
+        function playTicketSound() {
+            // Special reward sound - magical chimes
+            playSound(659, 0.3); // E5
+            setTimeout(() => playSound(784, 0.3), 150); // G5
+            setTimeout(() => playSound(1047, 0.3), 300); // C6
+            setTimeout(() => playSound(1319, 0.5), 450); // E6
+        }
+
+        function toggleSound() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            const soundIcon = document.getElementById('sound-icon');
+            soundIcon.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+            
+            if (gameState.soundEnabled) {
+                playClickSound();
+            }
+        }
+
+        // Question database - expanded with more questions per level
+        const questionDatabase = {
+            // Levels 1-3: Addition and Subtraction (Easy)
+            1: [
+                { question: "5 + 3 = ?", options: [8, 7, 9, 6], correct: 0, emoji: "🔢" },
+                { question: "10 - 4 = ?", options: [6, 7, 5, 8], correct: 0, emoji: "➖" },
+                { question: "7 + 2 = ?", options: [9, 8, 10, 7], correct: 0, emoji: "➕" },
+                { question: "4 + 6 = ?", options: [10, 9, 11, 8], correct: 0, emoji: "🔢" },
+                { question: "8 - 3 = ?", options: [5, 4, 6, 7], correct: 0, emoji: "➖" },
+                { question: "6 + 1 = ?", options: [7, 6, 8, 5], correct: 0, emoji: "➕" }
+            ],
+            2: [
+                { question: "12 + 8 = ?", options: [20, 19, 21, 18], correct: 0, emoji: "🔢" },
+                { question: "15 - 7 = ?", options: [8, 9, 7, 6], correct: 0, emoji: "➖" },
+                { question: "9 + 6 = ?", options: [15, 14, 16, 13], correct: 0, emoji: "➕" },
+                { question: "11 + 9 = ?", options: [20, 19, 21, 18], correct: 0, emoji: "🔢" },
+                { question: "16 - 8 = ?", options: [8, 7, 9, 6], correct: 0, emoji: "➖" },
+                { question: "13 + 4 = ?", options: [17, 16, 18, 15], correct: 0, emoji: "➕" }
+            ],
+            3: [
+                { question: "25 + 15 = ?", options: [40, 39, 41, 38], correct: 0, emoji: "🔢" },
+                { question: "30 - 12 = ?", options: [18, 19, 17, 20], correct: 0, emoji: "➖" },
+                { question: "14 + 17 = ?", options: [31, 30, 32, 29], correct: 0, emoji: "➕" },
+                { question: "22 + 18 = ?", options: [40, 39, 41, 38], correct: 0, emoji: "🔢" },
+                { question: "35 - 16 = ?", options: [19, 18, 20, 17], correct: 0, emoji: "➖" },
+                { question: "26 + 14 = ?", options: [40, 39, 41, 38], correct: 0, emoji: "➕" }
+            ],
+            // Levels 4-6: Multiplication and Division (Medium)
+            4: [
+                { question: "6 × 4 = ?", options: [24, 22, 26, 20], correct: 0, emoji: "✖️" },
+                { question: "15 ÷ 3 = ?", options: [5, 4, 6, 3], correct: 0, emoji: "➗" },
+                { question: "7 × 3 = ?", options: [21, 20, 22, 19], correct: 0, emoji: "✖️" },
+                { question: "5 × 6 = ?", options: [30, 29, 31, 28], correct: 0, emoji: "✖️" },
+                { question: "18 ÷ 2 = ?", options: [9, 8, 10, 7], correct: 0, emoji: "➗" },
+                { question: "4 × 8 = ?", options: [32, 31, 33, 30], correct: 0, emoji: "✖️" }
+            ],
+            5: [
+                { question: "8 × 7 = ?", options: [56, 54, 58, 52], correct: 0, emoji: "✖️" },
+                { question: "36 ÷ 6 = ?", options: [6, 5, 7, 4], correct: 0, emoji: "➗" },
+                { question: "9 × 5 = ?", options: [45, 44, 46, 43], correct: 0, emoji: "✖️" },
+                { question: "7 × 8 = ?", options: [56, 54, 58, 52], correct: 0, emoji: "✖️" },
+                { question: "42 ÷ 7 = ?", options: [6, 5, 7, 4], correct: 0, emoji: "➗" },
+                { question: "6 × 9 = ?", options: [54, 53, 55, 52], correct: 0, emoji: "✖️" }
+            ],
+            6: [
+                { question: "12 × 8 = ?", options: [96, 94, 98, 92], correct: 0, emoji: "✖️" },
+                { question: "72 ÷ 9 = ?", options: [8, 7, 9, 6], correct: 0, emoji: "➗" },
+                { question: "11 × 6 = ?", options: [66, 64, 68, 62], correct: 0, emoji: "✖️" },
+                { question: "9 × 12 = ?", options: [108, 106, 110, 104], correct: 0, emoji: "✖️" },
+                { question: "81 ÷ 9 = ?", options: [9, 8, 10, 7], correct: 0, emoji: "➗" },
+                { question: "7 × 11 = ?", options: [77, 75, 79, 73], correct: 0, emoji: "✖️" }
+            ],
+            // Levels 7-10: Applied Problems (Hard)
+            7: [
+                { question: "มีลูกอม 24 เม็ด แบ่งให้เด็ก 6 คน เท่าๆ กัน คนละกี่เม็ด?", options: [4, 3, 5, 6], correct: 0, emoji: "🍭" },
+                { question: "ซื้อดินสอ 3 แท่ง แท่งละ 15 บาท ใช้เงินทั้งหมดกี่บาท?", options: [45, 40, 50, 35], correct: 0, emoji: "✏️" },
+                { question: "ในห้องมีโต๊ะ 8 ตัว โต๊ะละ 4 ขา รวมกี่ขา?", options: [32, 30, 34, 28], correct: 0, emoji: "🪑" },
+                { question: "มีขนม 36 ชิ้น แบ่งใส่จาน 9 ใบ เท่าๆ กัน จานละกี่ชิ้น?", options: [4, 3, 5, 6], correct: 0, emoji: "🍪" },
+                { question: "ซื้อหนังสือ 5 เล่ม เล่มละ 12 บาท ใช้เงินทั้งหมดกี่บาท?", options: [60, 55, 65, 50], correct: 0, emoji: "📖" },
+                { question: "สวนมีต้นไม้ 7 แถว แถวละ 6 ต้น รวมกี่ต้น?", options: [42, 40, 44, 38], correct: 0, emoji: "🌲" }
+            ],
+            8: [
+                { question: "รถบัสมี 45 ที่นั่ง มีผู้โดยสาร 28 คน เหลือที่นั่งว่างกี่ที่?", options: [17, 16, 18, 15], correct: 0, emoji: "🚌" },
+                { question: "ซื้อของเล่น 6 ชิ้น ชิ้นละ 25 บาท ใช้เงินทั้งหมดกี่บาท?", options: [150, 145, 155, 140], correct: 0, emoji: "🧸" },
+                { question: "มีเหรียญ 10 บาท จำนวน 12 เหรียญ รวมเป็นเงินกี่บาท?", options: [120, 115, 125, 110], correct: 0, emoji: "🪙" },
+                { question: "โรงภาพยนตร์มี 8 แถว แถวละ 15 ที่นั่ง รวมกี่ที่นั่ง?", options: [120, 115, 125, 110], correct: 0, emoji: "🎬" },
+                { question: "มีลูกบอล 84 ลูก ใส่กล่องละ 12 ลูก ได้กี่กล่อง?", options: [7, 6, 8, 5], correct: 0, emoji: "⚽" },
+                { question: "ร้านขายปากกา 9 แพ็ค แพ็คละ 18 บาท รวมเป็นเงินกี่บาท?", options: [162, 160, 164, 158], correct: 0, emoji: "🖊️" }
+            ],
+            9: [
+                { question: "สวนมีต้นไผ่ 144 ต้น ปลูกเป็น 12 แถว แถวละกี่ต้น?", options: [12, 11, 13, 10], correct: 0, emoji: "🎋" },
+                { question: "ห้องสมุดมีหนังสือ 15 ชั้น ชั้นละ 24 เล่ม รวมกี่เล่ม?", options: [360, 350, 370, 340], correct: 0, emoji: "📚" },
+                { question: "แบ่งลูกกวาด 96 เม็ด ใส่ถุง 8 ถุง เท่าๆ กัน ถุงละกี่เม็ด?", options: [12, 11, 13, 10], correct: 0, emoji: "🍬" },
+                { question: "โรงงานผลิตขนม 16 ชั่วโมง ชั่วโมงละ 45 ชิ้น รวมกี่ชิ้น?", options: [720, 710, 730, 700], correct: 0, emoji: "🏭" },
+                { question: "มีดอกไม้ 168 ดอก จัดช่อละ 14 ดอก ได้กี่ช่อ?", options: [12, 11, 13, 10], correct: 0, emoji: "💐" },
+                { question: "ร้านอาหารมี 18 โต๊ะ โต๊ะละ 6 ที่นั่ง รวมกี่ที่นั่ง?", options: [108, 106, 110, 104], correct: 0, emoji: "🍽️" }
+            ],
+            10: [
+                // Easy level questions (Addition/Subtraction)
+                { question: "25 + 37 = ?", options: [62, 61, 63, 60], correct: 0, emoji: "➕" },
+                { question: "84 - 29 = ?", options: [55, 54, 56, 53], correct: 0, emoji: "➖" },
+                // Medium level questions (Multiplication/Division)
+                { question: "13 × 7 = ?", options: [91, 89, 93, 87], correct: 0, emoji: "✖️" },
+                { question: "144 ÷ 12 = ?", options: [12, 11, 13, 10], correct: 0, emoji: "➗" },
+                // Hard level questions (Applied problems)
+                { question: "โรงเรียนมีนักเรียน 18 ห้อง ห้องละ 35 คน รวมกี่คน?", options: [630, 620, 640, 610], correct: 0, emoji: "🏫" },
+                { question: "ร้านขายไข่ 252 ฟอง บรรจุกล่องละ 12 ฟอง ได้กี่กล่อง?", options: [21, 20, 22, 19], correct: 0, emoji: "🥚" }
+            ]
+        };
+
+        function initializeGame() {
+            generateLevelGrid();
+            updateDisplay();
+        }
+
+        function generateLevelGrid() {
+            const levelGrid = document.querySelector('.grid.grid-cols-2');
+            levelGrid.innerHTML = '';
+
+            for (let i = 1; i <= 10; i++) {
+                const levelCard = document.createElement('div');
+                const isCompleted = gameState.levelStars[i-1] === 1;
+                const isLocked = i > gameState.currentLevel && !isCompleted;
+                const isCurrent = i === gameState.currentLevel;
+
+                let cardClass = 'level-card text-white rounded-2xl p-6 text-center shadow-lg ';
+                let icon = '';
+                
+                if (isCompleted) {
+                    cardClass += 'completed';
+                    icon = '⭐';
+                } else if (isCurrent) {
+                    cardClass += 'current';
+                    icon = '🎯';
+                } else if (isLocked) {
+                    cardClass += 'locked';
+                    icon = '🔒';
+                } else {
+                    cardClass += 'bg-gradient-to-br from-purple-500 to-blue-600';
+                    icon = '📝';
+                }
+
+                levelCard.className = cardClass;
+                levelCard.innerHTML = `
+                    <div class="text-4xl mb-2">${icon}</div>
+                    <div class="font-bold text-xl">ด่าน ${i}</div>
+                    <div class="text-sm opacity-90">${getLevelDescription(i)}</div>
+                `;
+
+                if (!isLocked) {
+                    levelCard.onclick = () => {
+                        playClickSound();
+                        startLevel(i);
+                    };
+                }
+
+                levelGrid.appendChild(levelCard);
+            }
+        }
+
+        function getLevelDescription(level) {
+            if (level <= 3) return 'บวก-ลบ';
+            if (level <= 6) return 'คูณ-หาร';
+            return 'โจทย์ประยุกต์';
+        }
+
+        function startLevel(level) {
+            gameState.currentLevel = level;
+            const questions = questionDatabase[level];
+            
+            // Shuffle questions for each user session
+            gameState.questions = shuffleArray([...questions]);
+            gameState.currentQuestionIndex = 0;
+            
+            document.getElementById('level-screen').classList.add('hidden');
+            document.getElementById('question-screen').classList.remove('hidden');
+            
+            showQuestion();
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function showQuestion() {
+            const question = gameState.questions[gameState.currentQuestionIndex];
+            
+            document.getElementById('current-level').textContent = gameState.currentLevel;
+            document.getElementById('question-number').textContent = gameState.currentQuestionIndex + 1;
+            document.getElementById('total-questions').textContent = gameState.questions.length;
+            document.getElementById('question-emoji').textContent = question.emoji;
+            document.getElementById('math-problem').textContent = question.question;
+            
+            // Shuffle answer options
+            const shuffledOptions = [...question.options];
+            const correctAnswer = shuffledOptions[question.correct];
+            
+            // Fisher-Yates shuffle
+            for (let i = shuffledOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+            }
+            
+            // Find new correct index
+            const newCorrectIndex = shuffledOptions.indexOf(correctAnswer);
+            
+            const optionsContainer = document.getElementById('answer-options');
+            optionsContainer.innerHTML = '';
+            
+            shuffledOptions.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'answer-btn bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-3xl font-bold py-6 px-8 rounded-2xl shadow-lg min-h-[80px] flex items-center justify-center';
+                button.textContent = option;
+                button.onclick = () => selectAnswer(index, newCorrectIndex);
+                optionsContainer.appendChild(button);
+            });
+
+            document.getElementById('feedback-area').classList.add('hidden');
+        }
+
+        function selectAnswer(selectedIndex, correctIndex) {
+            const buttons = document.querySelectorAll('.answer-btn');
+            const isCorrect = selectedIndex === correctIndex;
+            
+            // Play sound effect
+            if (isCorrect) {
+                playCorrectSound();
+            } else {
+                playWrongSound();
+            }
+            
+            buttons.forEach((btn, index) => {
+                btn.disabled = true;
+                if (index === selectedIndex) {
+                    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+                }
+                if (index === correctIndex && !isCorrect) {
+                    btn.classList.add('correct');
+                }
+            });
+
+            setTimeout(() => {
+                showFeedback(isCorrect);
+            }, 1000);
+        }
+
+        function showFeedback(isCorrect) {
+            const feedbackArea = document.getElementById('feedback-area');
+            const feedbackEmoji = document.getElementById('feedback-emoji');
+            const feedbackText = document.getElementById('feedback-text');
+            
+            if (isCorrect) {
+                feedbackEmoji.textContent = '🎉';
+                feedbackText.textContent = 'ยินดีด้วย! คำตอบถูกต้อง';
+                feedbackText.className = 'text-2xl font-bold mb-4 text-green-600';
+                feedbackArea.classList.remove('hidden');
+            } else {
+                feedbackEmoji.textContent = '😅';
+                feedbackText.textContent = 'ตอบผิด! เริ่มด่านใหม่ใน 2 วินาที...';
+                feedbackText.className = 'text-2xl font-bold mb-4 text-red-600';
+                feedbackArea.classList.remove('hidden');
+                
+                // If wrong answer, restart the level immediately after 2 seconds
+                setTimeout(() => {
+                    restartLevel();
+                }, 2000);
+            }
+        }
+
+        function nextQuestion() {
+            playClickSound();
+            gameState.currentQuestionIndex++;
+            
+            if (gameState.currentQuestionIndex < gameState.questions.length) {
+                showQuestion();
+            } else {
+                // Level completed successfully - award star
+                if (gameState.levelStars[gameState.currentLevel - 1] === 0) {
+                    gameState.levelStars[gameState.currentLevel - 1] = 1;
+                    gameState.totalStars++;
+                    playLevelCompleteSound();
+                    updateDisplay();
+                    
+                    // Check for ticket reward when completing all 10 levels
+                    if (gameState.totalStars === 10) {
+                        gameState.tickets++;
+                        setTimeout(() => {
+                            playTicketSound();
+                            showRewardModal();
+                        }, 1500);
+                    }
+                }
+                
+                // Unlock next level
+                if (gameState.currentLevel < 10) {
+                    gameState.currentLevel++;
+                }
+                backToLevels();
+            }
+        }
+
+        function restartLevel() {
+            // Restart the current level with new shuffled questions
+            startLevel(gameState.currentLevel);
+        }
+
+        function backToLevels() {
+            playClickSound();
+            document.getElementById('question-screen').classList.add('hidden');
+            document.getElementById('level-screen').classList.remove('block');
+            document.getElementById('level-screen').classList.remove('hidden');
+            generateLevelGrid();
+        }
+
+        function updateDisplay() {
+            document.getElementById('total-stars').textContent = gameState.totalStars;
+            document.getElementById('progress-text').textContent = `${gameState.totalStars}/10 ดาว`;
+            
+            const progressPercent = (gameState.totalStars / 10) * 100;
+            document.getElementById('progress-bar').style.width = progressPercent + '%';
+        }
+
+        function showRewardModal() {
+            document.getElementById('reward-modal').classList.remove('hidden');
+            document.getElementById('reward-modal').classList.add('flex');
+        }
+
+        function closeRewardModal() {
+            playClickSound();
+            document.getElementById('reward-modal').classList.add('hidden');
+            document.getElementById('reward-modal').classList.remove('flex');
+        }
+
+        function showTickets() {
+            playClickSound();
+            document.getElementById('tickets-count').textContent = gameState.tickets;
+            document.getElementById('tickets-modal').classList.remove('hidden');
+            document.getElementById('tickets-modal').classList.add('flex');
+        }
+
+        function closeTicketsModal() {
+            playClickSound();
+            document.getElementById('tickets-modal').classList.add('hidden');
+            document.getElementById('tickets-modal').classList.remove('flex');
+        }
+
+        // Initialize game when page loads
+        window.onload = initializeGame;
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9801965de7de7dc8',t:'MTc1ODAzODUzOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
